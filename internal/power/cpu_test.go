@@ -40,6 +40,14 @@ func (m *cpuMock) GetCore() Core {
 	return m.Called().Get(0).(Core)
 }
 
+func (m *cpuMock) GetSiblings() []uint {
+	args := m.Called().Get(0)
+	if args == nil {
+		return nil
+	}
+	return args.([]uint)
+}
+
 func (m *cpuMock) setPool(pool Pool) error {
 	return m.Called(pool).Error(0)
 }
@@ -95,6 +103,58 @@ func TestNewCore(t *testing.T) {
 	assert.Equal(t, &cpuImpl{
 		id: 0,
 	}, cpu)
+}
+
+func TestCpuImpl_GetSiblings(t *testing.T) {
+	// newCore builds a physical core holding the given CPU IDs.
+	newCore := func(ids ...uint) *cpuCore {
+		core := &cpuCore{}
+		for _, id := range ids {
+			core.cpus.add(&cpuImpl{id: id, core: core})
+		}
+		return core
+	}
+
+	tcases := []struct {
+		testCase string
+		core     *cpuCore
+		cpuID    uint
+		expected []uint
+	}{
+		{
+			testCase: "Hyper-Threading enabled - returns the other CPU of the core",
+			core:     newCore(4, 60),
+			cpuID:    4,
+			expected: []uint{60},
+		},
+		{
+			testCase: "Hyper-Threading enabled - sibling lookup is symmetric",
+			core:     newCore(4, 60),
+			cpuID:    60,
+			expected: []uint{4},
+		},
+		{
+			testCase: "Hyper-Threading disabled - a core holds one CPU, so there are no siblings",
+			core:     newCore(4),
+			cpuID:    4,
+			expected: nil,
+		},
+	}
+
+	for _, tc := range tcases {
+		t.Run(tc.testCase, func(t *testing.T) {
+			cpu := tc.core.cpus.ByID(tc.cpuID)
+			if !assert.NotNil(t, cpu) {
+				return
+			}
+			assert.Equal(t, tc.expected, cpu.GetSiblings())
+		})
+	}
+
+	t.Run("CPU without a core has no siblings", func(t *testing.T) {
+		cpu := &cpuImpl{id: 4}
+		assert.Nil(t, cpu.GetSiblings())
+	})
 }
 
 func TestCpuImpl_SetPool(t *testing.T) {

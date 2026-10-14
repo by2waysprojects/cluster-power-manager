@@ -206,6 +206,11 @@ func (m *coreMock) GetAbsMinMax() (uint, uint) {
 	return args.Get(0).(uint), args.Get(1).(uint)
 }
 
+func (m *coreMock) GetSiblings() []uint {
+	args := m.Called()
+	return args.Get(0).([]uint)
+}
+
 type mockCPUTopology struct {
 	mock.Mock
 	power.Topology

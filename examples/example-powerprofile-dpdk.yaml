@@ -52,4 +52,9 @@ spec:
    allowedUsageDifference: 5
    allowedFrequencyDifference: 10
    scalePercentage: 100
-   fallbackFreqPercent: 50
+   # Both percentages below are a position in the CPU's hardware frequency range,
+   # not a fraction of its maximum: 0 is the hardware minimum, 100 the maximum.
+   # Applied to a DPDK lcore only while it has no usable usage sample.
+   fallbackFreqPercent: 100
+   # Applied to the CPUs of the container that are not DPDK polling lcores.
+   appFreqPercent: 80

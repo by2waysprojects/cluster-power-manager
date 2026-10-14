@@ -656,10 +656,13 @@ func (r *PowerPodReconciler) generateCPUScalingOpts(scalingPolicy *powerv1alpha1
 			continue
 		}
 
-		// Get the min and max frequency of this CPU and calculate the fallback frequency.
+		// Get the min and max frequency of this CPU and calculate the fallback
+		// and application frequencies.
 		minFreq, maxFreq := cpu.GetAbsMinMax()
 		fallbackFreqPct := uint(*scalingPolicy.FallbackFreqPercent)
 		fallbackFreq := minFreq + (maxFreq-minFreq)*(fallbackFreqPct)/100
+		appFreqPct := uint(*scalingPolicy.AppFreqPercent)
+		appFreq := minFreq + (maxFreq-minFreq)*(appFreqPct)/100
 
 		opts := scaling.CPUScalingOpts{
 			CPU:                        cpu,
@@ -673,6 +676,8 @@ func (r *PowerPodReconciler) generateCPUScalingOpts(scalingPolicy *powerv1alpha1
 			CurrentTargetFrequency:     scaling.FrequencyNotYetSet,
 			ScaleFactor:                float64(*scalingPolicy.ScalePercentage) / 100.0,
 			FallbackFreq:               int(fallbackFreq),
+			AppFreq:                    int(appFreq),
+			SiblingCPUIDs:              cpu.GetSiblings(),
 		}
 		optsList = append(optsList, opts)
 	}

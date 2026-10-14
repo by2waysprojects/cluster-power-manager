@@ -545,6 +545,15 @@ spec:
                     maximum: 50
                     minimum: 0
                     type: integer
+                  appFreqPercent:
+                    default: 80
+                    description: |-
+                      Frequency to set for CPUs of the container that are not DPDK polling
+                      lcores, in percent of the range between the hardware minimum and
+                      maximum frequencies: 0 is the hardware minimum, 100 the hardware maximum
+                    maximum: 100
+                    minimum: 0
+                    type: integer
                   cooldownPeriod:
                     default: 30ms
                     description: Time to elapse after setting a new frequency target
@@ -552,9 +561,11 @@ spec:
                     format: duration
                     type: string
                   fallbackFreqPercent:
-                    default: 0
-                    description: Frequency to set when CPU usage is not available,
-                      in percent of max frequency
+                    default: 100
+                    description: |-
+                      Frequency to set when a usage sample is temporarily not available for a
+                      DPDK lcore, in percent of the range between the hardware minimum and
+                      maximum frequencies: 0 is the hardware minimum, 100 the hardware maximum
                     maximum: 100
                     minimum: 0
                     type: integer
