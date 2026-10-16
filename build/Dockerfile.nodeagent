@@ -13,6 +13,11 @@ ARG TARGETOS \
 ARG CGO_ENABLED=0
 ARG GOFLAGS
 ARG GOEXPERIMENT
+# Downstream builds using an OpenSSL-enabled Go toolchain can set GOFIPS140=off
+# to disable Go's native FIPS mode and use the toolchain's OpenSSL backend.
+# This requires CGO_ENABLED=1 and a BASE_IMAGE providing the appropriate
+# FIPS-validated OpenSSL module, configured for FIPS operation at runtime.
+ARG GOFIPS140
 
 WORKDIR /workspace
 # Copy the Go Modules manifests
