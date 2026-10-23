@@ -144,11 +144,21 @@ type CPUScalingPolicy struct {
 	// +kubebuilder:default=50
 	ScalePercentage *int `json:"scalePercentage,omitempty"`
 
-	// Frequency to set when CPU usage is not available, in percent of max frequency
+	// Frequency to set when a usage sample is temporarily not available for a
+	// DPDK lcore, in percent of the range between the hardware minimum and
+	// maximum frequencies: 0 is the hardware minimum, 100 the hardware maximum
 	// +kubebuilder:validation:Minimum=0
 	// +kubebuilder:validation:Maximum=100
-	// +kubebuilder:default=0
+	// +kubebuilder:default=100
 	FallbackFreqPercent *int `json:"fallbackFreqPercent,omitempty"`
+
+	// Frequency to set for CPUs of the container that are not DPDK polling
+	// lcores, in percent of the range between the hardware minimum and
+	// maximum frequencies: 0 is the hardware minimum, 100 the hardware maximum
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=100
+	// +kubebuilder:default=80
+	AppFreqPercent *int `json:"appFreqPercent,omitempty"`
 }
 
 // PowerProfileStatus defines the observed state of PowerProfile

@@ -17,6 +17,7 @@ type CPU interface {
 	setPool(pool Pool) error
 	consolidate() error
 	GetCore() Core
+	GetSiblings() []uint
 
 	SetCPUFrequency(frequency uint) error
 	GetCurrentCPUFrequency() (uint, error)
@@ -152,6 +153,22 @@ func (cpu *cpuImpl) GetAbsMinMax() (uint, uint) {
 
 func (cpu *cpuImpl) GetCore() Core {
 	return cpu.core
+}
+
+// GetSiblings returns the IDs of the other CPUs sharing this CPU's physical core.
+// A physical core has a single frequency, shared by all of its CPUs.
+func (cpu *cpuImpl) GetSiblings() []uint {
+	if cpu.core == nil {
+		return nil
+	}
+
+	var siblings []uint
+	for _, id := range cpu.core.CPUs().IDs() {
+		if id != cpu.id {
+			siblings = append(siblings, id)
+		}
+	}
+	return siblings
 }
 
 func (cpu *cpuImpl) _setPoolProperty(pool Pool) {

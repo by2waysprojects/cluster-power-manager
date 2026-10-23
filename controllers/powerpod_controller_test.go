@@ -2255,12 +2255,14 @@ func TestPowerPod_generateCPUScalingOpts(t *testing.T) {
 	minFreq := uint(1000000)
 	maxFreq := uint(3700000)
 
-	// Build a CPUList with mock CPUs 0, 1, 2.
+	// Build a CPUList with mock CPUs 0, 1, 2. CPUs 0 and 1 are HT siblings.
+	siblings := map[uint][]uint{0: {1}, 1: {0}, 2: nil}
 	cpuList := make(power.CPUList, 3)
 	for i, id := range []uint{0, 1, 2} {
 		cpu := new(coreMock)
 		cpu.On("GetID").Return(id)
 		cpu.On("GetAbsMinMax").Return(minFreq, maxFreq)
+		cpu.On("GetSiblings").Return(siblings[id])
 		cpuList[i] = cpu
 	}
 
@@ -2272,6 +2274,7 @@ func TestPowerPod_generateCPUScalingOpts(t *testing.T) {
 		AllowedUsageDifference:     intPtr(5),
 		AllowedFrequencyDifference: intPtr(25),
 		FallbackFreqPercent:        intPtr(50),
+		AppFreqPercent:             intPtr(100),
 		ScalePercentage:            intPtr(100),
 	}
 
@@ -2333,6 +2336,8 @@ func TestPowerPod_generateCPUScalingOpts(t *testing.T) {
 
 				expectedFallback := minFreq + (maxFreq-minFreq)*50/100
 				assert.Equal(t, int(expectedFallback), o.FallbackFreq)
+				assert.Equal(t, int(maxFreq), o.AppFreq)
+				assert.Equal(t, siblings[o.CPU.GetID()], o.SiblingCPUIDs)
 			}
 		})
 	}
@@ -2390,6 +2395,7 @@ func TestPowerPod_Reconcile_WithCPUScalingPolicy(t *testing.T) {
 				AllowedUsageDifference:     intPtr(tc.usageDiff),
 				AllowedFrequencyDifference: intPtr(tc.freqDiff),
 				FallbackFreqPercent:        intPtr(tc.fallbackPct),
+				AppFreqPercent:             intPtr(100),
 				ScalePercentage:            intPtr(tc.scalePct),
 			}
 			profile := &powerv1alpha1.PowerProfile{
@@ -2531,6 +2537,7 @@ func TestPowerPod_Reconcile_MultipleDPDKContainersRejected(t *testing.T) {
 		AllowedUsageDifference:     intPtr(5),
 		AllowedFrequencyDifference: intPtr(25),
 		FallbackFreqPercent:        intPtr(50),
+		AppFreqPercent:             intPtr(100),
 		ScalePercentage:            intPtr(100),
 	}
 	profile := &powerv1alpha1.PowerProfile{

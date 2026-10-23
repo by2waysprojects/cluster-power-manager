@@ -29,10 +29,15 @@ func (md *MockDPDKTelemetryClient) GetUsagePercent(cpuID uint) (int, error) {
 	return md.Called().Get(0).(int), md.Called().Error(1)
 }
 
+func (md *MockDPDKTelemetryClient) GetCPUClass(cpuID uint) CPUClass {
+	return md.Called(cpuID).Get(0).(CPUClass)
+}
+
 func TestCPUScalingUpdater_Update(t *testing.T) {
 	tCases := []struct {
 		testCase     string
 		cpuID        uint
+		cpuClass     CPUClass
 		scalingOpts  *CPUScalingOpts
 		currentUsage int
 		usageErr     error
@@ -43,6 +48,7 @@ func TestCPUScalingUpdater_Update(t *testing.T) {
 		{
 			testCase: "Test Case 1 - New frequency is set - 1",
 			cpuID:    0,
+			cpuClass: CPUClassPollingLcore,
 			scalingOpts: &CPUScalingOpts{
 				TargetUsage:                80,
 				AllowedUsageDifference:     5,
@@ -64,6 +70,7 @@ func TestCPUScalingUpdater_Update(t *testing.T) {
 		{
 			testCase: "Test Case 1 - New frequency is set - 2",
 			cpuID:    1,
+			cpuClass: CPUClassPollingLcore,
 			scalingOpts: &CPUScalingOpts{
 				TargetUsage:                41,
 				AllowedUsageDifference:     3,
@@ -85,6 +92,7 @@ func TestCPUScalingUpdater_Update(t *testing.T) {
 		{
 			testCase: "Test Case 1 - New frequency is set - 3",
 			cpuID:    1,
+			cpuClass: CPUClassPollingLcore,
 			scalingOpts: &CPUScalingOpts{
 				TargetUsage:                58,
 				AllowedUsageDifference:     3,
@@ -106,6 +114,7 @@ func TestCPUScalingUpdater_Update(t *testing.T) {
 		{
 			testCase: "Test Case 1 - New frequency is set - 4, capped to HWMax",
 			cpuID:    1,
+			cpuClass: CPUClassPollingLcore,
 			scalingOpts: &CPUScalingOpts{
 				TargetUsage:                60,
 				AllowedUsageDifference:     5,
@@ -127,6 +136,7 @@ func TestCPUScalingUpdater_Update(t *testing.T) {
 		{
 			testCase: "Test Case 1 - New frequency is set - 5, capped to HWMin",
 			cpuID:    1,
+			cpuClass: CPUClassPollingLcore,
 			scalingOpts: &CPUScalingOpts{
 				TargetUsage:                70,
 				AllowedUsageDifference:     5,
@@ -148,6 +158,7 @@ func TestCPUScalingUpdater_Update(t *testing.T) {
 		{
 			testCase: "Test Case 2 - Usage difference is within accepted range",
 			cpuID:    2,
+			cpuClass: CPUClassPollingLcore,
 			scalingOpts: &CPUScalingOpts{
 				TargetUsage:                80,
 				AllowedUsageDifference:     5,
@@ -169,6 +180,7 @@ func TestCPUScalingUpdater_Update(t *testing.T) {
 		{
 			testCase: "Test Case 3 - Frequency difference is within accepted range",
 			cpuID:    2,
+			cpuClass: CPUClassPollingLcore,
 			scalingOpts: &CPUScalingOpts{
 				TargetUsage:                80,
 				AllowedUsageDifference:     1,
@@ -190,6 +202,7 @@ func TestCPUScalingUpdater_Update(t *testing.T) {
 		{
 			testCase: "Test Case 4 - Current frequency is not yet set",
 			cpuID:    2,
+			cpuClass: CPUClassPollingLcore,
 			scalingOpts: &CPUScalingOpts{
 				TargetUsage:                80,
 				AllowedUsageDifference:     1,
@@ -211,6 +224,7 @@ func TestCPUScalingUpdater_Update(t *testing.T) {
 		{
 			testCase: "Test Case 5 - Error getting usage",
 			cpuID:    2,
+			cpuClass: CPUClassPollingLcore,
 			scalingOpts: &CPUScalingOpts{
 				TargetUsage:                80,
 				AllowedUsageDifference:     1,
@@ -232,6 +246,7 @@ func TestCPUScalingUpdater_Update(t *testing.T) {
 		{
 			testCase: "Test Case 6 - Error getting usage, fallback frequency is already set",
 			cpuID:    2,
+			cpuClass: CPUClassPollingLcore,
 			scalingOpts: &CPUScalingOpts{
 				TargetUsage:                80,
 				AllowedUsageDifference:     1,
@@ -253,6 +268,7 @@ func TestCPUScalingUpdater_Update(t *testing.T) {
 		{
 			testCase: "Test Case 7 - Error getting current frequency",
 			cpuID:    2,
+			cpuClass: CPUClassPollingLcore,
 			scalingOpts: &CPUScalingOpts{
 				TargetUsage:                80,
 				AllowedUsageDifference:     1,
@@ -274,6 +290,7 @@ func TestCPUScalingUpdater_Update(t *testing.T) {
 		{
 			testCase: "Test Case 8 - Error getting current frequency, fallback frequency is already set",
 			cpuID:    2,
+			cpuClass: CPUClassPollingLcore,
 			scalingOpts: &CPUScalingOpts{
 				TargetUsage:                80,
 				AllowedUsageDifference:     1,
@@ -319,6 +336,7 @@ func TestCPUScalingUpdater_Update(t *testing.T) {
 			assert.NoError(t, err)
 
 			dpdkmock := &MockDPDKTelemetryClient{}
+			dpdkmock.On("GetCPUClass", tc.cpuID).Return(tc.cpuClass)
 			dpdkmock.On("GetUsagePercent").Return(tc.currentUsage, tc.usageErr)
 
 			// Run updater to set the frequency
@@ -331,6 +349,144 @@ func TestCPUScalingUpdater_Update(t *testing.T) {
 			frequency := strings.Trim(string(frequencyRaw), " \n")
 			assert.Equal(t, tc.expectedFreq, frequency)
 			assert.Equal(t, tc.nextSetIn, nextSetIn)
+
+			dpdkmock.AssertExpectations(t)
+		})
+	}
+}
+
+// TestCPUScalingUpdater_Update_NonPollingClasses covers the CPUs of a DPDK
+// container that are not polling lcores. These must be held at a fixed
+// frequency rather than left at the fallback frequency, which would otherwise
+// put a floor under the physical core shared with a polling lcore.
+func TestCPUScalingUpdater_Update_NonPollingClasses(t *testing.T) {
+	const (
+		hwMin   = 400000
+		hwMax   = 3700000
+		appFreq = 3700000
+	)
+
+	tCases := []struct {
+		testCase       string
+		cpuClass       CPUClass
+		siblingIDs     []uint
+		siblingClass   CPUClass
+		expectedFreq   string
+		expectedTarget int
+	}{
+		{
+			testCase:       "Silent lcore is held at the app frequency",
+			cpuClass:       CPUClassSilentLcore,
+			expectedFreq:   fmt.Sprintf("%d", appFreq),
+			expectedTarget: appFreq,
+		},
+		{
+			testCase:       "Non-lcore sharing a core with an lcore is held at the hardware minimum",
+			cpuClass:       CPUClassNonLcore,
+			siblingIDs:     []uint{1},
+			siblingClass:   CPUClassPollingLcore,
+			expectedFreq:   fmt.Sprintf("%d", hwMin),
+			expectedTarget: hwMin,
+		},
+		{
+			testCase:       "Non-lcore sharing a core with a silent lcore is held at the hardware minimum",
+			cpuClass:       CPUClassNonLcore,
+			siblingIDs:     []uint{1},
+			siblingClass:   CPUClassSilentLcore,
+			expectedFreq:   fmt.Sprintf("%d", hwMin),
+			expectedTarget: hwMin,
+		},
+		{
+			testCase:       "Non-lcore whose sibling is also not an lcore is held at the app frequency",
+			cpuClass:       CPUClassNonLcore,
+			siblingIDs:     []uint{1},
+			siblingClass:   CPUClassNonLcore,
+			expectedFreq:   fmt.Sprintf("%d", appFreq),
+			expectedTarget: appFreq,
+		},
+		{
+			// Hyper-Threading disabled: the CPU has a physical core to itself,
+			// so there is no sibling that could be floored by it.
+			testCase:       "Non-lcore with no siblings at all is held at the app frequency",
+			cpuClass:       CPUClassNonLcore,
+			siblingIDs:     nil,
+			expectedFreq:   fmt.Sprintf("%d", appFreq),
+			expectedTarget: appFreq,
+		},
+		{
+			// An application predating the lcore telemetry endpoints cannot be
+			// classified at all, so none of its CPUs can be scaled.
+			testCase:       "Unsupported CPU is held at the app frequency",
+			cpuClass:       CPUClassUnsupported,
+			expectedFreq:   fmt.Sprintf("%d", appFreq),
+			expectedTarget: appFreq,
+		},
+		{
+			// An unsupported sibling is not known to be an lcore, and is held
+			// at the app frequency anyway, so flooring this CPU would only
+			// starve it without letting the core drop any lower.
+			testCase:       "Non-lcore sharing a core with an unsupported CPU is held at the app frequency",
+			cpuClass:       CPUClassNonLcore,
+			siblingIDs:     []uint{1},
+			siblingClass:   CPUClassUnsupported,
+			expectedFreq:   fmt.Sprintf("%d", appFreq),
+			expectedTarget: appFreq,
+		},
+		{
+			testCase:       "Unclassified CPU falls back until discovery completes",
+			cpuClass:       CPUClassUnknown,
+			expectedFreq:   "2000000",
+			expectedTarget: 2000000,
+		},
+	}
+
+	for _, tc := range tCases {
+		t.Run(tc.testCase, func(t *testing.T) {
+			host, teardown, err := setupScalingTestFiles(3, map[string]string{
+				"governor": "userspace",
+				"max":      fmt.Sprintf("%d", hwMax),
+				"min":      fmt.Sprintf("%d", hwMin),
+			})
+			assert.NoError(t, err)
+			defer teardown()
+
+			const cpuID uint = 0
+			opts := &CPUScalingOpts{
+				CPU:                    host.GetAllCpus().ByID(cpuID),
+				SamplePeriod:           10 * time.Millisecond,
+				CooldownPeriod:         20 * time.Millisecond,
+				HWMaxFrequency:         hwMax,
+				HWMinFrequency:         hwMin,
+				CurrentTargetFrequency: FrequencyNotYetSet,
+				FallbackFreq:           2000000,
+				AppFreq:                appFreq,
+				SiblingCPUIDs:          tc.siblingIDs,
+			}
+
+			setFreqpath := filepath.Join("testing", "cpus", fmt.Sprintf("cpu%d", cpuID), "cpufreq", "scaling_setspeed")
+			assert.NoError(t, os.WriteFile(setFreqpath, []byte(""), 0o644))
+
+			dpdkmock := &MockDPDKTelemetryClient{}
+			dpdkmock.On("GetCPUClass", cpuID).Return(tc.cpuClass)
+			for _, siblingID := range tc.siblingIDs {
+				dpdkmock.On("GetCPUClass", siblingID).Return(tc.siblingClass)
+			}
+
+			updater := &cpuScalingUpdaterImpl{dpdkClient: dpdkmock}
+			nextSetIn := updater.Update(opts)
+
+			frequencyRaw, err := os.ReadFile(setFreqpath)
+			assert.NoError(t, err)
+			assert.Equal(t, tc.expectedFreq, strings.Trim(string(frequencyRaw), " \n"))
+			assert.Equal(t, tc.expectedTarget, opts.CurrentTargetFrequency)
+			assert.Equal(t, opts.SamplePeriod, nextSetIn)
+
+			// A held frequency is written once; the next tick is a no-op.
+			assert.NoError(t, os.WriteFile(setFreqpath, []byte(""), 0o644))
+			updater.Update(opts)
+			frequencyRaw, err = os.ReadFile(setFreqpath)
+			assert.NoError(t, err)
+			assert.Empty(t, strings.Trim(string(frequencyRaw), " \n"))
 
 			dpdkmock.AssertExpectations(t)
 		})
