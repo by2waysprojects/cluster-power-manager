@@ -58,6 +58,7 @@ type PowerConfigReconciler struct {
 }
 
 // +kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch,roleName=manager-role
+// +kubebuilder:rbac:groups=networking.k8s.io,resources=networkpolicies,verbs=create;delete;update;patch,roleName=manager-role
 // +kubebuilder:rbac:groups=power.cluster-power-manager.github.io,resources=powerconfigs,verbs=get;list;watch;delete,roleName=manager-role
 // +kubebuilder:rbac:groups=power.cluster-power-manager.github.io,resources=powerconfigs/status,verbs=get;patch,roleName=manager-role
 // +kubebuilder:rbac:groups=power.cluster-power-manager.github.io,resources=powerprofiles,verbs=get;list;watch;delete,roleName=manager-role

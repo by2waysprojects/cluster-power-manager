@@ -91,6 +91,15 @@ operatorclusterrole:
     - list
     - watch
   - apiGroups:
+    - networking.k8s.io
+    resources:
+    - networkpolicies
+    verbs:
+    - create
+    - delete
+    - update
+    - patch
+  - apiGroups:
     - power.cluster-power-manager.github.io
     resources:
     - powerconfigs
