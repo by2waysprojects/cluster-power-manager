@@ -84,6 +84,10 @@ metadata:
         }
       ]
     capabilities: Basic Install
+    features.operators.openshift.io/token-auth-aws: "false"
+    features.operators.openshift.io/token-auth-azure: "false"
+    features.operators.openshift.io/token-auth-gcp: "false"
+    operators.openshift.io/valid-subscription: '["OpenShift Container Platform", "OpenShift Platform Plus"]'
   name: cluster-power-manager.v0.0.1
   namespace: power-manager
 spec:
